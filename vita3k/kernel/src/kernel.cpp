@@ -54,13 +54,13 @@ void CorenumAllocator::set_max_core_count(const std::size_t max) {
 struct ThreadParams {
     KernelState *kernel = nullptr;
     SceUID thid = SCE_KERNEL_ERROR_ILLEGAL_THREAD_ID;
-    std::shared_ptr<SDL_semaphore> host_may_destroy_params = std::shared_ptr<SDL_semaphore>(SDL_CreateSemaphore(0), SDL_DestroySemaphore);
+    SDL_semaphore* host_may_destroy_params = SDL_CreateSemaphore(0);
 };
 
 static int SDLCALL thread_function(void *data) {
     assert(data != nullptr);
-    const ThreadParams params = *static_cast<const ThreadParams *>(data);
-    SDL_SemPost(params.host_may_destroy_params.get());
+    const ThreadParams params = *static_cast<ThreadParams const*>(data);
+    SDL_SemPost(params.host_may_destroy_params);
     const ThreadStatePtr thread = lock_and_find(params.thid, params.kernel->threads, params.kernel->mutex);
 #ifdef TRACY_ENABLE
     if (!thread->name.empty()) {
@@ -149,7 +149,8 @@ ThreadStatePtr KernelState::create_thread(MemState &mem, const char *name, Ptr<c
     params.thid = thread->id;
 
     SDL_CreateThread(&thread_function, thread->name.c_str(), &params);
-    SDL_SemWait(params.host_may_destroy_params.get());
+    SDL_SemWait(params.host_may_destroy_params);
+    SDL_DestroySemaphore(params.host_may_destroy_params);
     return thread;
 }
 
