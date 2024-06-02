@@ -54,12 +54,11 @@ void CorenumAllocator::set_max_core_count(const std::size_t max) {
 struct ThreadParams {
     KernelState *kernel = nullptr;
     SceUID thid = SCE_KERNEL_ERROR_ILLEGAL_THREAD_ID;
-    SDL_semaphore* host_may_destroy_params = SDL_CreateSemaphore(0);
 };
 
 static int SDLCALL thread_function(void *data) {
     assert(data != nullptr);
-    const ThreadParams params = *static_cast<ThreadParams const*>(data);
+    const ThreadParams params = *static_cast<ThreadParams const *>(data);
     delete data;
     data = nullptr;
     const ThreadStatePtr thread = lock_and_find(params.thid, params.kernel->threads, params.kernel->mutex);
@@ -145,7 +144,7 @@ ThreadStatePtr KernelState::create_thread(MemState &mem, const char *name, Ptr<c
     const auto lock = std::lock_guard(mutex);
     threads.emplace(thread->id, thread);
 
-    ThreadParams* params = new ThreadParams();
+    ThreadParams *params = new ThreadParams();
     params->kernel = this;
     params->thid = thread->id;
 

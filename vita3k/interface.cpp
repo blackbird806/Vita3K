@@ -66,7 +66,7 @@ static size_t write_to_buffer(void *pOpaque, mz_uint64 file_ofs, const void *pBu
     return n;
 }
 
-static const char *miniz_get_error(mz_zip_archive* zip) {
+static const char *miniz_get_error(mz_zip_archive *zip) {
     return mz_zip_get_error_string(mz_zip_get_last_error(zip));
 }
 
@@ -123,7 +123,7 @@ static bool set_content_path(EmuEnvState &emuenv, const bool is_theme, fs::path 
     return true;
 }
 
-bool install_archive_content(EmuEnvState &emuenv, GuiState *gui, mz_zip_archive* zip, const std::string &content_path, const std::function<void(ArchiveContents)> &progress_callback) {
+bool install_archive_content(EmuEnvState &emuenv, GuiState *gui, mz_zip_archive *zip, const std::string &content_path, const std::function<void(ArchiveContents)> &progress_callback) {
     std::string sfo_path = "sce_sys/param.sfo";
     std::string theme_path = "theme.xml";
     vfs::FileBuffer buffer, theme;
@@ -232,7 +232,7 @@ bool install_archive_content(EmuEnvState &emuenv, GuiState *gui, mz_zip_archive*
     return true;
 }
 
-static std::vector<std::string> get_archive_contents_path(mz_zip_archive* zip) {
+static std::vector<std::string> get_archive_contents_path(mz_zip_archive *zip) {
     mz_uint num_files = mz_zip_reader_get_num_files(zip);
     std::vector<std::string> content_path;
     std::string sfo_path = "sce_sys/param.sfo";
