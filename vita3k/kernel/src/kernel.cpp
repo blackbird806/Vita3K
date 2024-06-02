@@ -60,7 +60,8 @@ struct ThreadParams {
 static int SDLCALL thread_function(void *data) {
     assert(data != nullptr);
     const ThreadParams params = *static_cast<ThreadParams const*>(data);
-    SDL_SemPost(params.host_may_destroy_params);
+    delete data;
+    data = nullptr;
     const ThreadStatePtr thread = lock_and_find(params.thid, params.kernel->threads, params.kernel->mutex);
 #ifdef TRACY_ENABLE
     if (!thread->name.empty()) {
@@ -144,13 +145,11 @@ ThreadStatePtr KernelState::create_thread(MemState &mem, const char *name, Ptr<c
     const auto lock = std::lock_guard(mutex);
     threads.emplace(thread->id, thread);
 
-    ThreadParams params;
-    params.kernel = this;
-    params.thid = thread->id;
+    ThreadParams* params = new ThreadParams();
+    params->kernel = this;
+    params->thid = thread->id;
 
-    SDL_CreateThread(&thread_function, thread->name.c_str(), &params);
-    SDL_SemWait(params.host_may_destroy_params);
-    SDL_DestroySemaphore(params.host_may_destroy_params);
+    SDL_CreateThread(&thread_function, thread->name.c_str(), params);
     return thread;
 }
 
