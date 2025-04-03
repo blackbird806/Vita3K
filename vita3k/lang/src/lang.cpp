@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include <lang/state.h>
 
 #include <config/state.h>
+#include <dialog/state.h>
 #include <gui/state.h>
 #include <ime/state.h>
 #include <util/fs.h>
@@ -28,7 +29,7 @@
 namespace lang {
 
 static const std::vector<std::string> list_user_lang_static = {
-    "id", "ms"
+    "id", "ms", "ua"
 };
 
 void init_lang(LangState &lang, EmuEnvState &emuenv) {
@@ -289,6 +290,9 @@ void init_lang(LangState &lang, EmuEnvState &emuenv) {
                     set_lang_string(lang.live_area.help, live_area.child("help"));
                 }
 
+                // Message
+                set_lang_string(emuenv.common_dialog.lang.message, lang_child.child("message"));
+
                 // Performance Overlay
                 set_lang_string(lang.performance_overlay, lang_child.child("performance_overlay"));
 
@@ -339,7 +343,7 @@ void init_lang(LangState &lang, EmuEnvState &emuenv) {
                         auto &lang_settings = lang.settings.language;
                         set_lang_string(lang.settings.language.main, language);
 
-                        // Input Languague
+                        // Input Language
                         const auto input_language = language.child("input_language");
                         if (!input_language.empty()) {
                             // Main
@@ -415,6 +419,21 @@ void init_lang(LangState &lang, EmuEnvState &emuenv) {
         } else {
             LOG_ERROR("Error open lang file xml: {}", lang_xml_path);
             LOG_DEBUG("error: {} position: {}", load_xml_res.description(), load_xml_res.offset);
+            constexpr ptrdiff_t context_window = 20;
+            fs::ifstream file(lang_xml_path, std::ios::binary);
+            if (file.is_open()) {
+                const ptrdiff_t error_in_context = load_xml_res.offset < context_window ? load_xml_res.offset : context_window;
+                file.seekg(load_xml_res.offset - error_in_context, std::ios::beg);
+                if (!file.eof()) {
+                    std::string error_context;
+                    error_context.resize(context_window * 2);
+                    file.read(error_context.data(), context_window * 2);
+                    if (file.gcount() < context_window * 2)
+                        error_context.resize(file.gcount());
+                    LOG_DEBUG("Error preview: {}|{}", error_context.substr(0, error_in_context), error_context.substr(error_in_context));
+                }
+                file.close();
+            }
         }
     } else
         LOG_ERROR("Lang file xml not found: {}", lang_xml_path);

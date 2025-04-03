@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,15 +20,11 @@
 #include <config/state.h>
 #include <glutil/object.h>
 #include <gxm/types.h>
-#include <util/hash.h>
 
 #include <renderer/gl/state.h>
 #include <renderer/gl/types.h>
 
-#include <map>
 #include <memory>
-#include <string>
-#include <tuple>
 
 struct MemState;
 struct FeatureState;
@@ -76,7 +72,6 @@ void bind_fundamental(GLContext &context);
 void clear_previous_uniform_storage(GLContext &context);
 
 struct GLTextureCacheState;
-struct TextureCacheState;
 
 // Attribute formats.
 GLenum attribute_format_to_gl_type(SceGxmAttributeFormat format);

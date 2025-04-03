@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -125,6 +125,7 @@ EXPORT(SceUID, sceKernelAllocMemBlock, const char *pName, SceKernelMemBlockType 
     // https://wiki.henkaku.xyz/vita/SceSysmem_Types#memtype_bit_value
     Address start_address;
     switch (type) {
+    case SCE_KERNEL_MEMBLOCK_TYPE_USER_RW_UNCACHE:
     case SCE_KERNEL_MEMBLOCK_TYPE_USER_MAIN_PHYCONT_NC_RW:
         start_address = 0x70000000U;
         break;

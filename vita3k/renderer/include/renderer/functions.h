@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 struct MemState;
 struct FeatureState;
 struct Config;
+struct SDL_Window;
 
 namespace renderer {
 struct Context;
@@ -143,8 +144,6 @@ int send_single_command(State &state, Context *ctx, const CommandOpcode opcode, 
     else
         return 0;
 }
-
-class TextureCache;
 
 namespace texture {
 

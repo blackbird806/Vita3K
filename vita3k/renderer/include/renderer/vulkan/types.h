@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,8 +19,7 @@
 
 #include <renderer/texture_cache.h>
 #include <renderer/types.h>
-
-#include <threads/queue.h>
+#include <shader/uniform_block.h>
 #include <vkutil/objects.h>
 
 struct MemState;

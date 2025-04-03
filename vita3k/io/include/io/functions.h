@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,9 +21,9 @@
 #undef st_ctime
 #undef st_mtime
 
+#include <io/VitaIoDevice.h>
 #include <io/state.h>
 #include <io/types.h>
-#include <io/vfs.h>
 
 #include <util/fs.h>
 

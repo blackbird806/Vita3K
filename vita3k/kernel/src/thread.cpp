@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -92,13 +92,20 @@ int ThreadState::init(const char *name, Ptr<const void> entry_point, int init_pr
     const Ptr<uint8_t> base_tls_ptr = tls.get_ptr<uint8_t>();
     memset(base_tls_ptr.get(mem), 0, tls_size);
 
+    int *tls_array = tls.get_ptr<int>().get(mem);
+
+    tls_array[TLS_PROCESS_ID] = 1; // stubbed. unused
+    tls_array[TLS_THREAD_ID] = id;
+    tls_array[TLS_SP_TOP] = stack.get();
+    tls_array[TLS_SP_BOTTOM] = stack.get() + stack_size;
+    tls_array[TLS_CURRENT_PRIORITY] = priority;
+    tls_array[TLS_CPU_AFFINITY_MASK] = affinity_mask;
+
+    const Ptr<uint8_t> user_tls_ptr = base_tls_ptr + KERNEL_TLS_SIZE;
+    write_tpidruro(*cpu, user_tls_ptr.address());
     if (kernel.tls_address) {
-        const Ptr<uint8_t> user_tls_ptr = base_tls_ptr + KERNEL_TLS_SIZE;
-        write_tpidruro(*cpu, user_tls_ptr.address());
         assert(kernel.tls_psize <= kernel.tls_msize);
         memcpy(user_tls_ptr.get(mem), kernel.tls_address.get(mem), kernel.tls_psize);
-    } else {
-        write_tpidruro(*cpu, 0);
     }
 
     CPUContext ctx;
@@ -179,6 +186,7 @@ void ThreadState::exit_delete(bool exit) {
 bool ThreadState::run_loop() {
     int res = 0;
     int run_level = std::max(call_level, 1);
+
     std::unique_lock<std::mutex> lock(mutex);
 
     auto run_thread_end_callback = [&]() {
@@ -291,6 +299,8 @@ bool ThreadState::run_loop() {
             something_to_do.wait(lock);
             break;
         case ThreadToDo::suspend:
+            update_status(ThreadStatus::suspend);
+            something_to_do.wait(lock);
             break;
         }
     }

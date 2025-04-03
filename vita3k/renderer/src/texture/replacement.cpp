@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@
 #include "renderer/texture_cache.h"
 
 #include "gxm/functions.h"
+#include "util/align.h"
 #include "util/float_to_half.h"
 #include "util/log.h"
 
@@ -603,7 +604,7 @@ void TextureCache::refresh_available_textures() {
                 continue;
 
             uint64_t hash;
-            if (sscanf(file.filename().string().c_str(), "%llX", &hash) != 1)
+            if (!(std::istringstream{ file.filename().string() } >> std::hex >> hash))
                 continue;
 
             if (file.extension() != ".png" && file.extension() != ".dds")
@@ -736,7 +737,7 @@ static SceGxmTextureBaseFormat dxgi_to_gxm(const ddspp::DXGIFormat format) {
     case B5G6R5_UNORM:
         return SCE_GXM_TEXTURE_BASE_FORMAT_U5U6U5;
     case B5G5R5A1_UNORM:
-        return SCE_GXM_TEXTURE_BASE_FORMAT_U5U6U5;
+        return SCE_GXM_TEXTURE_BASE_FORMAT_U1U5U5U5;
     case B4G4R4A4_UNORM:
         return SCE_GXM_TEXTURE_BASE_FORMAT_U4U4U4U4;
     default:
@@ -809,7 +810,6 @@ static ddspp::DXGIFormat gxm_to_dxgi(const SceGxmTextureBaseFormat format) {
         return R32G32_FLOAT;
     case SCE_GXM_TEXTURE_BASE_FORMAT_U32U32:
         return R32G32_UINT;
-        ;
     case SCE_GXM_TEXTURE_BASE_FORMAT_UBC1:
         return BC1_UNORM;
     case SCE_GXM_TEXTURE_BASE_FORMAT_UBC2:
@@ -841,7 +841,7 @@ static ddspp::DXGIFormat dxgi_apply_srgb(const ddspp::DXGIFormat format) {
     case BC1_UNORM:
         return BC1_UNORM_SRGB;
     case BC2_UNORM:
-        return BC1_UNORM_SRGB;
+        return BC2_UNORM_SRGB;
     case BC3_UNORM:
         return BC3_UNORM_SRGB;
     case BC7_UNORM:

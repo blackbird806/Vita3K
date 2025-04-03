@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -32,8 +32,10 @@ template <typename T>
 class Pool {
 public:
     typedef std::unique_ptr<T, std::function<void(T *)>> Ptr;
-    Pool() {
-    }
+    Pool() = default;
+
+    Pool(const Pool &) = delete;
+    const Pool &operator=(const Pool &) = delete;
 
     void add(Ptr item) {
         free_ids.insert(items.size());
@@ -47,7 +49,7 @@ public:
 
     // borrow returns PoolItem instance wrapping one of available resources in the pool
     // if there's no available resource, the thread will wait until resources are returned to the pool
-    // if PoolItem instance is destroyed, the corresponding resource is considerd to be returned to the pool
+    // if PoolItem instance is destroyed, the corresponding resource is considered to be returned to the pool
     PoolItem<T> borrow();
 
 private:
@@ -56,9 +58,6 @@ private:
         free_ids.insert(id);
         cond.notify_one();
     }
-
-    Pool(const Pool &);
-    const Pool &operator=(const Pool &);
 
     std::mutex mutex;
     std::condition_variable cond;
@@ -77,6 +76,9 @@ public:
         , id(id) {
     }
 
+    PoolItem(const PoolItem &) = delete;
+    const PoolItem &operator=(const PoolItem &) = delete;
+
     T *get() {
         return item;
     }
@@ -86,9 +88,6 @@ public:
     }
 
 private:
-    PoolItem(const PoolItem &);
-    const PoolItem &operator=(const PoolItem &);
-
     Pool<T> *parent;
     int id;
     T *item;

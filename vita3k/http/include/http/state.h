@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,10 +18,10 @@
 #pragma once
 
 #include <mem/ptr.h>
+#include <util/types.h>
 
 #include <map>
 #include <string>
-#include <util/types.h>
 #include <vector>
 
 #define SCE_HTTP_DEFAULT_RESPONSE_HEADER_MAX KB(5)
@@ -55,7 +55,7 @@ enum SceHttpStatusCode {
     SCE_HTTP_STATUS_CODE_SWITCHING_PROTOCOLS = 101,
     SCE_HTTP_STATUS_CODE_PROCESSING = 102,
     SCE_HTTP_STATUS_CODE_EARLY_HINTS = 103,
-    // 2xx Sucessful
+    // 2xx Successful
     SCE_HTTP_STATUS_CODE_OK = 200,
     SCE_HTTP_STATUS_CODE_CREATED = 201,
     SCE_HTTP_STATUS_CODE_ACCEPTED = 202,
@@ -184,7 +184,7 @@ enum SceHttpErrorCode : uint32_t {
     SCE_HTTP_ERROR_BEFORE_SEND = 0x80431065,
     SCE_HTTP_ERROR_AFTER_SEND = 0x80431066,
     SCE_HTTP_ERROR_TIMEOUT = 0x80431068,
-    SCE_HTTP_ERROR_UNKOWN_AUTH_TYPE = 0x80431069,
+    SCE_HTTP_ERROR_UNKNOWN_AUTH_TYPE = 0x80431069,
     SCE_HTTP_ERROR_UNKNOWN_METHOD = 0x8043106B,
     SCE_HTTP_ERROR_READ_BY_HEAD_METHOD = 0x8043106F,
     SCE_HTTP_ERROR_NOT_IN_COM = 0x80431070,

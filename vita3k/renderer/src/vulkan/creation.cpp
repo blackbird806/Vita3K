@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 
 #include <gxm/types.h>
 
-#include <util/log.h>
 #include <vkutil/vkutil.h>
 
 namespace renderer::vulkan {
@@ -41,7 +40,7 @@ VKContext::VKContext(VKState &state, MemState &mem)
     memset(&prev_vert_ublock, 0, sizeof(shader::RenderVertUniformBlock));
     memset(&prev_frag_ublock, 0, sizeof(shader::RenderFragUniformBlock));
 
-    // specify the alignement
+    // specify the alignment
     // for the index buffer, we only have 16 or 32bit types
     index_stream_ring_buffer.alignment = sizeof(uint32_t);
     // for the vertex buffer, nothing should need more alignment than a vec4

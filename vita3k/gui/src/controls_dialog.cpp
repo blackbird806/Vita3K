@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,13 +19,14 @@
 
 #include <config/functions.h>
 #include <config/state.h>
+#include <dialog/state.h>
 #include <emuenv/state.h>
 #include <gui/functions.h>
 #include <interface.h>
 
 namespace gui {
 
-static char const *SDL_key_to_string[]{ "[unset]", "[unknown]", "[unknown]", "[unknown]", "A", "B", "C", "D", "E", "F", "G",
+static constexpr std::array<const char *, 256> SDL_key_to_string{ "[unset]", "[unknown]", "[unknown]", "[unknown]", "A", "B", "C", "D", "E", "F", "G",
     "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0",
     "Return/Enter", "Escape", "Backspace", "Tab", "Space", "-", "=", "[", "]", "\\", "NonUS #", ";", "'", "Grave", ",", ".", "/", "CapsLock", "F1",
     "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", "PrtScrn", "ScrlLock", "Pause", "Insert", "Home", "PgUp", "Delete",
@@ -43,48 +44,39 @@ static char const *SDL_key_to_string[]{ "[unset]", "[unknown]", "[unknown]", "[u
     "Keypad Mem+", "Keypad Mem-", "Keypad Mem*", "Keypad Mem/", "Keypad +/-", "Keypad Clear", "Keypad ClearEntry", "Keypad Binary", "Keypad Octal",
     "Keypad Dec", "Keypad HexaDec", "[unset]", "[unset]", "LCtrl", "LShift", "LAlt", "Win/Cmd", "RCtrl", "RShift", "RAlt", "RWin/Cmd" };
 
-static const short total_key_entries = 28;
+#define CALC_KEYBOARD_MEMBERS(option_type, option_name, option_default, member_name) \
+    +(std::string_view(#member_name).starts_with("keyboard_") ? 1 : 0) // NOLINT(bugprone-macro-parentheses)
 
+static constexpr short total_key_entries = 0 CONFIG_INDIVIDUAL(CALC_KEYBOARD_MEMBERS);
+#undef CALC_KEYBOARD_MEMBERS
+
+template <typename T>
+int int_or_zero(T value) {
+    static_assert(std::is_same_v<T, int>);
+    if constexpr (std::is_same_v<T, int>)
+        return value;
+    else
+        return 0;
+}
 static void prepare_map_array(EmuEnvState &emuenv, std::array<int, total_key_entries> &map) {
-    map[0] = emuenv.cfg.keyboard_leftstick_up;
-    map[1] = emuenv.cfg.keyboard_leftstick_down;
-    map[2] = emuenv.cfg.keyboard_leftstick_right;
-    map[3] = emuenv.cfg.keyboard_leftstick_left;
-    map[4] = emuenv.cfg.keyboard_rightstick_up;
-    map[5] = emuenv.cfg.keyboard_rightstick_down;
-    map[6] = emuenv.cfg.keyboard_rightstick_right;
-    map[7] = emuenv.cfg.keyboard_rightstick_left;
-    map[8] = emuenv.cfg.keyboard_button_up;
-    map[9] = emuenv.cfg.keyboard_button_down;
-    map[10] = emuenv.cfg.keyboard_button_right;
-    map[11] = emuenv.cfg.keyboard_button_left;
-    map[12] = emuenv.cfg.keyboard_button_square;
-    map[13] = emuenv.cfg.keyboard_button_cross;
-    map[14] = emuenv.cfg.keyboard_button_circle;
-    map[15] = emuenv.cfg.keyboard_button_triangle;
-    map[16] = emuenv.cfg.keyboard_button_start;
-    map[17] = emuenv.cfg.keyboard_button_select;
-    map[18] = emuenv.cfg.keyboard_button_psbutton;
-    map[19] = emuenv.cfg.keyboard_button_l1;
-    map[20] = emuenv.cfg.keyboard_button_r1;
-    map[21] = emuenv.cfg.keyboard_button_l2;
-    map[22] = emuenv.cfg.keyboard_button_r2;
-    map[23] = emuenv.cfg.keyboard_button_l3;
-    map[24] = emuenv.cfg.keyboard_button_r3;
-    map[25] = emuenv.cfg.keyboard_gui_toggle_gui;
-    map[26] = emuenv.cfg.keyboard_gui_fullscreen;
-    map[27] = emuenv.cfg.keyboard_gui_toggle_touch;
+    size_t i = 0;
+#define ADD_KEYBOARD_MEMBERS(option_type, option_name, option_default, member_name) \
+    if constexpr (std::string_view(#member_name).starts_with("keyboard_")) {        \
+        map[i++] = int_or_zero(emuenv.cfg.member_name);                             \
+    }
+
+    CONFIG_INDIVIDUAL(ADD_KEYBOARD_MEMBERS)
+#undef ADD_KEYBOARD_MEMBERS
 }
 
-bool need_open_error_duplicate_key_popup = false;
+static bool need_open_error_duplicate_key_popup = false;
 
 static void remapper_button(GuiState &gui, EmuEnvState &emuenv, int *button, const char *button_name, const char *tooltip = nullptr) {
     ImGui::TableNextRow();
     ImGui::TableSetColumnIndex(0);
     ImGui::Text("%s", button_name);
-    if (tooltip && ImGui::IsItemHovered()) {
-        ImGui::SetTooltip("%s", tooltip);
-    }
+    if (tooltip)
+        SetTooltipEx(tooltip);
     ImGui::TableSetColumnIndex(1);
     // the association of the key
     int key_association = *button;
@@ -113,11 +105,11 @@ static void remapper_button(GuiState &gui, EmuEnvState &emuenv, int *button, con
 }
 
 void draw_controls_dialog(GuiState &gui, EmuEnvState &emuenv) {
-    const ImVec2 display_size(emuenv.viewport_size.x, emuenv.viewport_size.y);
-    const auto RES_SCALE = ImVec2(display_size.x / emuenv.res_width_dpi_scale, display_size.y / emuenv.res_height_dpi_scale);
-    static const auto BUTTON_SIZE = ImVec2(120.f * emuenv.dpi_scale, 0.f);
+    const ImVec2 display_size(emuenv.logical_viewport_size.x, emuenv.logical_viewport_size.y);
+    const auto RES_SCALE = ImVec2(emuenv.gui_scale.x, emuenv.gui_scale.y);
+    static const auto BUTTON_SIZE = ImVec2(120.f * emuenv.manual_dpi_scale, 0.f);
 
-    float height = emuenv.viewport_size.y / emuenv.dpi_scale;
+    float height = emuenv.logical_viewport_size.y / emuenv.manual_dpi_scale;
     if (ImGui::BeginMainMenuBar()) {
         height = height - ImGui::GetWindowHeight() * 2;
         ImGui::EndMainMenuBar();
@@ -130,9 +122,7 @@ void draw_controls_dialog(GuiState &gui, EmuEnvState &emuenv) {
     ImGui::SetNextWindowPos(ImVec2(ImGui::GetIO().DisplaySize.x / 2.f, ImGui::GetIO().DisplaySize.y / 2.f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
     ImGui::Begin("##controls", &gui.controls_menu.controls_dialog, ImGuiWindowFlags_NoTitleBar);
     ImGui::SetWindowFontScale(RES_SCALE.x);
-    auto title_str = lang["title"].c_str();
-    ImGui::SetCursorPosX((ImGui::GetWindowSize().x / 2.f) - (ImGui::CalcTextSize(title_str).x / 2.f));
-    ImGui::TextColored(GUI_COLOR_TEXT_TITLE, "%s", title_str);
+    TextColoredCentered(GUI_COLOR_TEXT_TITLE, lang["title"].c_str());
     ImGui::Spacing();
     ImGui::Separator();
 

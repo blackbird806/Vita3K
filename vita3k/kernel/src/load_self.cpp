@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -336,9 +336,9 @@ static bool load_var_exports(const uint32_t *nids, const Ptr<uint32_t> *entries,
         auto nid_it = kernel.export_nids.find(nid);
         if (nid_it != kernel.export_nids.end()) {
             LOG_DEBUG("Found previously not found variable. nid:{}, new_entry_point:{}", log_hex(nid), log_hex(entry.address()));
-            Address old_entry_address = kernel.export_nids[nid];
-            kernel.export_nids[nid] = entry.address();
+            old_entry_address = kernel.export_nids[nid];
         }
+        kernel.export_nids[nid] = entry.address();
 
         bool reloc_success = true;
         auto range = kernel.var_binding_infos.equal_range(nid);
@@ -348,7 +348,7 @@ static bool load_var_exports(const uint32_t *nids, const Ptr<uint32_t> *entries,
                 continue;
 
             SegmentInfosForReloc seg;
-            const auto module_info = kernel.loaded_modules[kernel.module_uid_by_nid[var_binding_info.module_nid]];
+            const auto &module_info = kernel.loaded_modules[kernel.module_uid_by_nid[var_binding_info.module_nid]];
             if (!module_info) {
                 reloc_success = false;
                 LOG_ERROR("Module not found by nid: {} uid: {}", log_hex(var_binding_info.module_nid), kernel.module_uid_by_nid[var_binding_info.module_nid]);
@@ -410,7 +410,7 @@ static bool unload_var_exports(const uint32_t *nids, const Ptr<uint32_t> *entrie
                 continue;
 
             SegmentInfosForReloc seg;
-            const auto module_info = kernel.loaded_modules[kernel.module_uid_by_nid[var_binding_info.module_nid]];
+            const auto &module_info = kernel.loaded_modules[kernel.module_uid_by_nid[var_binding_info.module_nid]];
             if (!module_info) {
                 reloc_success = false;
                 LOG_ERROR("Module not found by nid: {} uid: {}", log_hex(var_binding_info.module_nid), kernel.module_uid_by_nid[var_binding_info.module_nid]);
@@ -470,7 +470,7 @@ static bool load_exports(SceKernelModuleInfo *kernel_module_info, const sce_modu
 /**
  * \return Negative on failure
  */
-SceUID load_self(KernelState &kernel, MemState &mem, const void *self, const std::string &self_path, const fs::path &log_path) {
+SceUID load_self(KernelState &kernel, MemState &mem, const void *self, const std::string &self_path, const fs::path &log_path, const std::vector<Patch> &patches) {
     // TODO: use raw I/O from path when io becomes less bad
     const uint8_t *const self_bytes = static_cast<const uint8_t *>(self);
     const SCE_header &self_header = *static_cast<const SCE_header *>(self);
@@ -631,6 +631,14 @@ SceUID load_self(KernelState &kernel, MemState &mem, const void *self, const std
                     assert(res == MZ_OK);
                 } else {
                     memcpy(seg_ptr.get(mem), seg_bytes, seg_header.p_filesz);
+                }
+
+                for (auto &patch : patches) {
+                    // TODO patches should maybe be able to specify the path/file to patch?
+                    if (seg_index == patch.seg && self_path.find("eboot.bin") != std::string::npos) {
+                        LOG_INFO("Patching segment {} at offset 0x{:X} with {} values", seg_index, patch.offset, patch.values.size());
+                        memcpy(seg_ptr.get(mem) + patch.offset, patch.values.data(), patch.values.size());
+                    }
                 }
 
                 segment_reloc_info[seg_index] = { segment_address, seg_header.p_vaddr, seg_header.p_memsz };

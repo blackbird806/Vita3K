@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include <util/log.h>
 
 #ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #endif
 
@@ -50,7 +51,7 @@ ExitCode init(const Root &root_paths, bool use_stdout) {
         assert(0);
     });
 
-#ifdef WIN32
+#ifdef _WIN32
     // set console codepage to UTF-8
     SetConsoleOutputCP(65001);
     SetConsoleTitle("Vita3K PSVita Emulator");
@@ -98,7 +99,7 @@ ExitCode add_sink(const fs::path &log_path) {
 }
 
 // log exceptions and flush log file on exceptions
-#ifdef WIN32
+#ifdef _WIN32
 static LONG WINAPI exception_handler(PEXCEPTION_POINTERS pExp) noexcept {
     const unsigned ec = pExp->ExceptionRecord->ExceptionCode;
     switch (ec) {

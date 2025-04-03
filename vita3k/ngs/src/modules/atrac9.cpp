@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -16,7 +16,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include <ngs/modules/atrac9.h>
-#include <util/bytes.h>
 #include <util/log.h>
 
 extern "C" {
@@ -93,12 +92,13 @@ bool Atrac9Module::decode_more_data(KernelState &kern, const MemState &mem, cons
         state->current_loop_count++;
         state->current_byte_position_in_buffer = 0;
 
-        if (bufparam.loop_count != -1 && state->current_loop_count > bufparam.loop_count) {
+        if ((bufparam.loop_count != -1) && (state->current_loop_count > bufparam.loop_count)) {
             state->current_buffer = bufparam.next_buffer_index;
             state->current_loop_count = 0;
 
-            if (state->current_buffer == -1
-                || !params->buffer_params[state->current_buffer].buffer) {
+            if ((state->current_buffer == -1)
+                || !params->buffer_params[state->current_buffer].buffer
+                || (params->buffer_params[state->current_buffer].bytes_count == 0)) {
                 data.invoke_callback(kern, mem, thread_id, SCE_NGS_AT9_END_OF_DATA, 0, 0);
 
                 // we are done
@@ -129,10 +129,10 @@ bool Atrac9Module::decode_more_data(KernelState &kern, const MemState &mem, cons
     uint32_t frame_bytes_gotten = bufparam.bytes_count - state->current_byte_position_in_buffer;
     if (frame_bytes_gotten < superframe_size || !temp_buffer.empty()) {
         // the superframe overlaps two buffers...
-        uint32_t bytes_transfered = std::min<uint32_t>(frame_bytes_gotten, superframe_size - temp_buffer.size());
+        uint32_t bytes_transferred = std::min<uint32_t>(frame_bytes_gotten, superframe_size - temp_buffer.size());
         uint32_t old_size = temp_buffer.size();
-        temp_buffer.resize(old_size + bytes_transfered);
-        memcpy(temp_buffer.data() + old_size, input, bytes_transfered);
+        temp_buffer.resize(old_size + bytes_transferred);
+        memcpy(temp_buffer.data() + old_size, input, bytes_transferred);
 
         if (temp_buffer.size() < superframe_size) {
             // continue getting data
@@ -173,7 +173,7 @@ bool Atrac9Module::decode_more_data(KernelState &kern, const MemState &mem, cons
 
     // if the superframe is across two buffers, I don't know how to interpret the skipped samples (which are in the middle of the frame)...
     if (temp_buffer.empty()) {
-        // remove skipped samples at the beginnning and the end of the buffer
+        // remove skipped samples at the beginning and the end of the buffer
         // in case you have more than a superframe of samples skipped (I don't know if this can happen)
         const uint32_t sample_index = (state->current_byte_position_in_buffer / superframe_size) * samples_per_superframe;
         if (bufparam.samples_discard_start_off > sample_index) {
@@ -186,7 +186,7 @@ bool Atrac9Module::decode_more_data(KernelState &kern, const MemState &mem, cons
         const uint32_t samples_left_after = (frame_bytes_gotten / superframe_size - 1) * samples_per_superframe;
         if (bufparam.samples_discard_end_off > samples_left_after) {
             // last chunk
-            decoded_size -= bufparam.samples_discard_end_off;
+            decoded_size -= std::min(decoded_size, bufparam.samples_discard_end_off - samples_left_after);
         }
     }
 

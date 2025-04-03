@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -546,6 +546,22 @@ enum SceSysmoduleInternalModuleId : uint32_t {
     SCE_SYSMODULE_INTERNAL_DRM_PSM_KDC = 0x80000027, //!< DRM PSM KDC module
     SCE_SYSMODULE_INTERNAL_LOCATION_INTERNAL = 0x80000028, //!< sceLocation module
     SCE_SYSMODULE_INTERNAL_LOCATION_FACTORY = 0x80000029 //!< Location Factory module
+};
+
+// Indexes in thread local storage (TLS) for system data. It is used mostly by libkernel.
+enum TlsItems {
+    TLS_PROCESS_ID = 0,
+    TLS_THREAD_ID = 1,
+    TLS_SP_TOP = 2,
+    TLS_SP_BOTTOM = 3,
+    TLS_VFP_EXCEPTION = 4,
+    TLS_RESERVED_5,
+    TLS_RESERVED_6, // libc reserved longjump addr
+    TLS_RESERVED_7, // libc reserved some memory address mask
+    TLS_CURRENT_PRIORITY = 8,
+    TLS_CPU_AFFINITY_MASK = 9,
+    TLS_NET_ERRNO = 0x40,
+    TLS_LIBC_ERRNO = 0x88,
 };
 
 struct SceSysmoduleOpt {

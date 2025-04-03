@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -30,16 +30,14 @@
 #include <string>
 #include <vector>
 
-namespace host {
-namespace dialog {
-namespace filesystem {
+namespace host::dialog::filesystem {
 
 /**
  * @brief Result IDs for filesystem-related dialogs
  */
 enum Result {
     /**
-     * @brief An error has ocurred
+     * @brief An error has occurred
      */
     ERROR,
 
@@ -105,8 +103,4 @@ Result pick_folder(std::filesystem::path &resulting_path, const std::filesystem:
  */
 std::string get_error();
 
-} // namespace filesystem
-
-} // namespace dialog
-
-} // namespace host
+} // namespace host::dialog::filesystem

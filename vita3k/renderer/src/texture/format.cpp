@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 // Copyright (c) 2009 Benjamin Dobell, Glass Echidna
 //
 // This program is free software; you can redistribute it and/or modify
@@ -20,11 +20,9 @@
 #include <cstdint>
 #include <cstring>
 
-#include <gxm/functions.h>
 #include <gxm/types.h>
 #include <renderer/functions.h>
 #include <renderer/pvrt-dec.h>
-#include <shader/spirv_recompiler.h>
 #include <util/log.h>
 
 namespace renderer::texture {
@@ -186,9 +184,9 @@ void convert_x8u24_to_f32(void *dest, const void *data, const uint32_t width, co
 
     for (uint32_t row = 0; row < height; ++row) {
         for (uint32_t col = 0; col < width; ++col) {
-            const uint32_t src_value = src[row * width + height];
+            const uint32_t src_value = src[row * width + col];
             const uint32_t d24 = (src_value >> shift_amount) & ((1U << 24) - 1);
-            dst[row * width + height] = static_cast<float>(d24) / ((1U << 24) - 1);
+            dst[row * width + col] = static_cast<float>(d24) / ((1U << 24) - 1);
         }
     }
 }
@@ -199,7 +197,7 @@ void convert_U8U3U3U2_to_U8U8U8U8(void *dest, const void *data, const uint32_t w
 
     for (uint32_t row = 0; row < height; ++row) {
         for (uint32_t col = 0; col < width; ++col) {
-            const uint32_t src_value = src[row * width + height];
+            const uint32_t src_value = src[row * width + col];
 
             const uint8_t alpha = (src_value & 0xFF00) >> 8;
             const uint8_t red = (src_value & 0x00E0) >> 5;
@@ -208,7 +206,7 @@ void convert_U8U3U3U2_to_U8U8U8U8(void *dest, const void *data, const uint32_t w
 
             const uint32_t value = (alpha << 24) | (blue << 22) | (blue << 20) | (blue << 18) | (blue << 16) | (green << 13) | (green << 10) | ((green & 0b110) << 7) | (red << 5) | (red << 2) | (red >> 1);
 
-            dst[row * width + height] = value;
+            dst[row * width + col] = value;
         }
     }
 }
@@ -219,8 +217,8 @@ void convert_f32m_to_f32(void *dest, const void *data, const uint32_t width, con
 
     for (uint32_t row = 0; row < height; ++row) {
         for (uint32_t col = 0; col < width; ++col) {
-            const uint32_t src_value = src[row * width + height];
-            dst[row * width + height] = src_value & 0x7FFFFFFF;
+            const uint32_t src_value = src[row * width + col];
+            dst[row * width + col] = src_value & 0x7FFFFFFF;
         }
     }
 }
@@ -252,14 +250,14 @@ void convert_u2f10f10f10_to_f16f16f16f16(void *dest, const void *data, const uin
 
     for (uint32_t row = 0; row < height; ++row) {
         for (uint32_t col = 0; col < width; ++col) {
-            uint32_t src_value = src[row * width + height];
+            uint32_t src_value = src[row * width + col];
             int dst_idx;
             // first get the 2 alpha bits
             if (is_alpha_upper) {
-                dst[row * width + height][3] = u2_to_f16[(src_value >> 30)];
+                dst[row * width + col][3] = u2_to_f16[(src_value >> 30)];
                 dst_idx = 0;
             } else {
-                dst[row * width + height][0] = u2_to_f16[(src_value & 0b11)];
+                dst[row * width + col][0] = u2_to_f16[(src_value & 0b11)];
                 dst_idx = 1;
                 src_value >>= 2;
             }
@@ -268,7 +266,7 @@ void convert_u2f10f10f10_to_f16f16f16f16(void *dest, const void *data, const uin
             for (int i = 0; i < 3; i++) {
                 const uint16_t comp = src_value & ((1 << 10) - 1);
                 src_value >>= 10;
-                dst[row * width + height][dst_idx++] = f10_to_f16(comp);
+                dst[row * width + col][dst_idx++] = f10_to_f16(comp);
             }
         }
     }

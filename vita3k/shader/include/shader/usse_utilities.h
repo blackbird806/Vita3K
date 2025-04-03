@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,11 +18,8 @@
 #pragma once
 
 #include <SPIRV/SpvBuilder.h>
-#include <shader/usse_program_analyzer.h>
 #include <shader/usse_translator_types.h>
 #include <shader/usse_types.h>
-
-#include <gxm/types.h>
 
 struct FeatureState;
 
@@ -35,7 +32,7 @@ struct SpirvUtilFunctions {
     spv::Function *fetch_memory{ nullptr };
     spv::Function *unpack_fx10{ nullptr };
 
-    // buffer_addres_vec[i][1] contains the buffer pointer with an array of vec_i and stride 16 bytes
+    // buffer_address_vec[i][1] contains the buffer pointer with an array of vec_i and stride 16 bytes
     // 0 in the last index is for the read buffer, 1 is for the write buffer
     // this is technically not a function but is the best place to put it
     // buffer_address_vec[0] is for a packed float[] array

@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,8 +17,6 @@
 
 #include <renderer/shaders.h>
 
-#include <renderer/profile.h>
-
 #include <renderer/vulkan/state.h>
 
 #include <gxm/types.h>
@@ -28,7 +26,8 @@
 #include <util/fs.h>
 #include <util/log.h>
 
-#include <utility>
+#include <string>
+#include <vector>
 
 namespace renderer {
 

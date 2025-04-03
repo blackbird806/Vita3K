@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ extern "C" {
 
 #include <util/log.h>
 
-#include <cassert>
+#include <algorithm>
 
 struct FFMPEGAtrac9Info {
     uint32_t version;
@@ -42,7 +42,8 @@ uint32_t Atrac9DecoderState::get(DecoderQuery query) {
 
     switch (query) {
     case DecoderQuery::CHANNELS: return info->channels;
-    case DecoderQuery::BIT_RATE: return 0;
+    // The bit rate is the size of a superframe times the number of superframes per second (times 8)
+    case DecoderQuery::BIT_RATE: return static_cast<uint32_t>((info->superframeSize * 8ULL * info->samplingRate) / (info->frameSamples * info->framesInSuperframe));
     case DecoderQuery::SAMPLE_RATE: return info->samplingRate;
     case DecoderQuery::AT9_SAMPLE_PER_FRAME: return info->frameSamples;
     case DecoderQuery::AT9_SAMPLE_PER_SUPERFRAME: return info->frameSamples * info->framesInSuperframe;
@@ -92,7 +93,7 @@ bool Atrac9DecoderState::send(const uint8_t *data, uint32_t size) {
 
     const int res = Atrac9Decode(decoder_handle, data, reinterpret_cast<short *>(result.data()), &decode_used);
     if (res != At9Status::ERR_SUCCESS) {
-        LOG_ERROR("Decode failure with code {}", res);
+        LOG_ERROR("Decode failure with code {}", log_hex(res));
         return false;
     }
 

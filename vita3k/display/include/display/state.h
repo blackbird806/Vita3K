@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,15 +17,15 @@
 
 #pragma once
 
-#include <atomic>
 #include <kernel/callback.h>
 #include <mem/ptr.h>
+#include <util/types.h>
+
+#include <atomic>
 #include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
-
-#include <util/types.h>
 
 enum SceDisplayPixelFormat {
     SCE_DISPLAY_PIXELFORMAT_A8B8G8R8 = 0x00000000U

@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,9 +17,13 @@
 
 #include <gxm/functions.h>
 #include <shader/gxp_parser.h>
-#include <shader/usse_program_analyzer.h>
+#include <shader/usse_types.h>
 #include <util/align.h>
 #include <util/log.h>
+
+#include <algorithm>
+#include <map>
+#include <tuple>
 
 namespace shader {
 

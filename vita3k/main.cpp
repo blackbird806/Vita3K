@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 #include <app/functions.h>
 #include <config/functions.h>
 #include <config/version.h>
+#include <dialog/state.h>
 #include <display/state.h>
 #include <emuenv/state.h>
 #include <gui/functions.h>
@@ -30,6 +31,7 @@
 #include <kernel/state.h>
 #include <modules/module_parent.h>
 #include <packages/functions.h>
+#include <packages/license.h>
 #include <packages/pkg.h>
 #include <packages/sfo.h>
 #include <renderer/functions.h>
@@ -43,7 +45,7 @@
 #include <app/discord.h>
 #endif
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <combaseapi.h>
 #include <process.h>
 #endif
@@ -77,13 +79,13 @@ static void run_execv(char *argv[], EmuEnvState &emuenv) {
         args[3] = nullptr;
 
         // Execute the emulator again with some arguments
-#ifdef WIN32
+#ifdef _WIN32
     FreeConsole();
     _execv(argv[0], args);
 #elif defined(__unix__) || defined(__APPLE__) && defined(__MACH__)
     execv(argv[0], const_cast<char *const *>(args));
 #endif
-};
+}
 
 int main(int argc, char *argv[]) {
     ZoneScoped; // Tracy - Track main function scope
@@ -96,7 +98,7 @@ int main(int argc, char *argv[]) {
 
     // Check admin privs before init starts to avoid creating of file as other user by accident
     bool adminPriv = false;
-#ifdef WIN32
+#ifdef _WIN32
     // https://stackoverflow.com/questions/8046097/how-to-check-if-a-process-has-the-administrative-rights
     HANDLE hToken = NULL;
     if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
@@ -162,7 +164,7 @@ int main(int argc, char *argv[]) {
         return InitConfigFailed;
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     {
         auto res = CoInitializeEx(NULL, COINIT_MULTITHREADED);
         LOG_ERROR_IF(res == S_FALSE, "Failed to initialize COM Library");
@@ -184,7 +186,11 @@ int main(int argc, char *argv[]) {
         SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_SWITCH, "1");
         SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS, "1");
 
-        if (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+        // Enable High DPI support
+#ifdef _WIN32
+        SDL_SetHint(SDL_HINT_WINDOWS_DPI_SCALING, "1");
+#endif
+        if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMECONTROLLER) < 0) {
             app::error_dialog("SDL initialisation failed.");
             return SDLInitFailed;
         }
@@ -223,10 +229,10 @@ int main(int argc, char *argv[]) {
                 } else
                     return QuitRequested;
             }
-            config::serialize_config(emuenv.cfg, emuenv.config_path);
             run_execv(argv, emuenv);
         }
         gui::init(gui, emuenv);
+        app::update_viewport(emuenv);
     }
 
     if (cfg.content_path.has_value()) {
@@ -331,16 +337,15 @@ int main(int argc, char *argv[]) {
     const auto APP_INDEX = gui::get_app_index(gui, emuenv.io.app_path);
     emuenv.app_info.app_version = APP_INDEX->app_ver;
     emuenv.app_info.app_category = APP_INDEX->category;
-    emuenv.app_info.app_content_id = APP_INDEX->content_id;
     emuenv.io.addcont = APP_INDEX->addcont;
+    emuenv.io.content_id = APP_INDEX->content_id;
     emuenv.io.savedata = APP_INDEX->savedata;
     emuenv.current_app_title = APP_INDEX->title;
     emuenv.app_info.app_short_title = APP_INDEX->stitle;
     emuenv.io.title_id = APP_INDEX->title_id;
 
     // Check license for PS App Only
-    if (emuenv.io.title_id.starts_with("PCS"))
-        emuenv.app_sku_flag = get_license_sku_flag(emuenv, emuenv.app_info.app_content_id);
+    get_license(emuenv, emuenv.io.title_id, emuenv.io.content_id);
 
     if (cfg.console) {
         auto main_thread = emuenv.kernel.get_thread(emuenv.main_thread_id);
@@ -362,8 +367,8 @@ int main(int argc, char *argv[]) {
     }
 
     const auto draw_app_background = [](GuiState &gui, EmuEnvState &emuenv) {
-        const auto pos_min = ImVec2(emuenv.viewport_pos.x, emuenv.viewport_pos.y);
-        const auto pos_max = ImVec2(pos_min.x + emuenv.viewport_size.x, pos_min.y + emuenv.viewport_size.y);
+        const auto pos_min = ImVec2(emuenv.logical_viewport_pos.x, emuenv.logical_viewport_pos.y);
+        const auto pos_max = ImVec2(pos_min.x + emuenv.logical_viewport_size.x, pos_min.y + emuenv.logical_viewport_size.y);
 
         if (gui.apps_background.contains(emuenv.io.app_path))
             // Display application background
@@ -409,8 +414,8 @@ int main(int argc, char *argv[]) {
         // Driver acto!
         renderer::process_batches(*emuenv.renderer.get(), emuenv.renderer->features, emuenv.mem, emuenv.cfg);
 
-        const SceFVector2 viewport_pos = { emuenv.viewport_pos.x, emuenv.viewport_pos.y };
-        const SceFVector2 viewport_size = { emuenv.viewport_size.x, emuenv.viewport_size.y };
+        const SceFVector2 viewport_pos = { emuenv.drawable_viewport_pos.x, emuenv.drawable_viewport_pos.y };
+        const SceFVector2 viewport_size = { emuenv.drawable_viewport_size.x, emuenv.drawable_viewport_size.y };
         emuenv.renderer->render_frame(viewport_pos, viewport_size, emuenv.display, emuenv.gxm, emuenv.mem);
 
         gui::draw_begin(gui, emuenv);
@@ -427,8 +432,8 @@ int main(int argc, char *argv[]) {
         // Driver acto!
         renderer::process_batches(*emuenv.renderer.get(), emuenv.renderer->features, emuenv.mem, emuenv.cfg);
 
-        const SceFVector2 viewport_pos = { emuenv.viewport_pos.x, emuenv.viewport_pos.y };
-        const SceFVector2 viewport_size = { emuenv.viewport_size.x, emuenv.viewport_size.y };
+        const SceFVector2 viewport_pos = { emuenv.drawable_viewport_pos.x, emuenv.drawable_viewport_pos.y };
+        const SceFVector2 viewport_size = { emuenv.drawable_viewport_size.x, emuenv.drawable_viewport_size.y };
         emuenv.renderer->render_frame(viewport_pos, viewport_size, emuenv.display, emuenv.gxm, emuenv.mem);
         // Calculate FPS
         app::calculate_fps(emuenv);
@@ -441,8 +446,11 @@ int main(int argc, char *argv[]) {
             gui::draw_common_dialog(gui, emuenv);
         gui::draw_vita_area(gui, emuenv);
 
-        if (emuenv.cfg.performance_overlay && !emuenv.kernel.is_threads_paused() && (emuenv.common_dialog.status != SCE_COMMON_DIALOG_STATUS_RUNNING))
+        if (emuenv.cfg.performance_overlay && !emuenv.kernel.is_threads_paused() && (emuenv.common_dialog.status != SCE_COMMON_DIALOG_STATUS_RUNNING)) {
+            ImGui::PushFont(gui.vita_font[emuenv.current_font_level]);
             gui::draw_perf_overlay(gui, emuenv);
+            ImGui::PopFont();
+        }
 
         if (emuenv.cfg.current_config.show_touchpad_cursor && !emuenv.kernel.is_threads_paused())
             gui::draw_touchpad_cursor(emuenv);
@@ -456,7 +464,7 @@ int main(int argc, char *argv[]) {
         FrameMark; // Tracy - Frame end mark for game rendering loop
     }
 
-#ifdef WIN32
+#ifdef _WIN32
     CoUninitialize();
 #endif
 

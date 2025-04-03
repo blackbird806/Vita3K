@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,19 +17,17 @@
 
 #pragma once
 
+#include <shader/usse_types.h>
+
 #include <array>
 #include <cstdint>
 #include <functional>
 #include <map>
 #include <memory>
-#include <queue>
-#include <shader/usse_types.h>
-#include <tuple>
 #include <vector>
 
 using UniformBufferSizes = std::array<std::uint32_t, 15>;
 
-struct SceGxmProgramParameter;
 struct SceGxmProgram;
 enum SceGxmParameterType : uint8_t;
 

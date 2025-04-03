@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 #include <span>
 #include <stack>
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(__APPLE__)
 #include <xxh_x86dispatch.h>
 #else
 #define XXH_INLINE_ALL
@@ -45,7 +45,6 @@
 #include <util/bytes.h>
 #include <util/lock_and_find.h>
 #include <util/log.h>
-#include <util/string_utils.h>
 
 #include <util/tracy.h>
 TRACY_MODULE_NAME(SceGxm);
@@ -902,7 +901,6 @@ static void display_entry_thread(EmuEnvState &emuenv) {
         LOG_CRITICAL("display_thread not found. thid:{}", emuenv.gxm.display_queue_thread);
         return;
     }
-    Ptr<SceGxmSyncObject> previous_sync = Ptr<SceGxmSyncObject>();
 
     while (true) {
         auto display_callback = display_queue.top();
@@ -912,7 +910,10 @@ static void display_entry_thread(EmuEnvState &emuenv) {
         SceGxmSyncObject *old_sync = display_callback->old_sync.get(emuenv.mem);
         SceGxmSyncObject *new_sync = display_callback->new_sync.get(emuenv.mem);
 
-        renderer::wishlist(new_sync, display_callback->new_sync_timestamp);
+        // sceGxmDisplayQueueAddEntry waits for both buffers to complete
+        renderer::wishlist(old_sync, display_callback->old_sync_timestamp);
+        if (old_sync != new_sync)
+            renderer::wishlist(new_sync, display_callback->new_sync_timestamp);
 
         // now we can remove the thread from the display queue
         display_queue.pop();
@@ -924,20 +925,14 @@ static void display_entry_thread(EmuEnvState &emuenv) {
         // Now run callback
         display_thread->run_guest_function(callback_address, display_callback->data);
 
+        // Notifies the renderer of the completion of the callback for the display_entry.
+        // The last_display of the entry, when pushed into the queue, is guaranteed to be timestamp_ahead + 1 at the time of the call.
+        renderer::subject_done(old_sync, display_callback->old_sync_timestamp + 1);
+        if (old_sync != new_sync)
+            renderer::subject_done(new_sync, display_callback->new_sync_timestamp + 1);
+
         free(emuenv.mem, display_callback->data);
-
-        // The only thing old buffer should be waiting for is to stop being displayed
-        renderer::subject_done(old_sync, std::min(old_sync->timestamp_current + 1, old_sync->timestamp_ahead.load()));
-        if (previous_sync && display_callback->old_sync != previous_sync) {
-            // in this case, also set the previous sync object to avoid deadlocks
-            SceGxmSyncObject *other_old_sync = previous_sync.get(emuenv.mem);
-            renderer::subject_done(other_old_sync, std::min(other_old_sync->timestamp_current + 1, other_old_sync->timestamp_ahead.load()));
-        }
-
-        previous_sync = display_callback->new_sync;
     }
-
-    return;
 }
 
 static Ptr<void> gxmRunDeferredMemoryCallback(KernelState &kernel, const MemState &mem, std::mutex &global_lock, std::uint32_t &return_size, Ptr<SceGxmDeferredContextCallback> callback, Ptr<void> userdata,
@@ -1319,6 +1314,16 @@ EXPORT(int, sceGxmAddRazorGpuCaptureBuffer) {
     return UNIMPLEMENTED();
 }
 
+static void update_viewport(renderer::State &state, SceGxmContext *context) {
+    if (context->state.viewport.enable == SCE_GXM_VIEWPORT_ENABLED) {
+        renderer::set_viewport_real(state, context->renderer.get(), context->state.viewport.offset.x,
+            context->state.viewport.offset.y, context->state.viewport.offset.z, context->state.viewport.scale.x,
+            context->state.viewport.scale.y, context->state.viewport.scale.z);
+    } else {
+        renderer::set_viewport_flat(state, context->renderer.get());
+    }
+}
+
 EXPORT(void, sceGxmSetDefaultRegionClipAndViewport, SceGxmContext *context, uint32_t xMax, uint32_t yMax) {
     TRACY_FUNC(sceGxmSetDefaultRegionClipAndViewport, context, xMax, yMax);
     const std::uint32_t xMin = 0;
@@ -1342,13 +1347,7 @@ EXPORT(void, sceGxmSetDefaultRegionClipAndViewport, SceGxmContext *context, uint
         renderer::set_region_clip(*emuenv.renderer, context->renderer.get(), SCE_GXM_REGION_CLIP_OUTSIDE,
             xMin, xMax, yMin, yMax);
 
-        if (context->state.viewport.enable == SCE_GXM_VIEWPORT_ENABLED) {
-            renderer::set_viewport_real(*emuenv.renderer, context->renderer.get(), context->state.viewport.offset.x,
-                context->state.viewport.offset.y, context->state.viewport.offset.z, context->state.viewport.scale.x,
-                context->state.viewport.scale.y, context->state.viewport.scale.z);
-        } else {
-            renderer::set_viewport_flat(*emuenv.renderer, context->renderer.get());
-        }
+        update_viewport(*emuenv.renderer, context);
     }
 }
 
@@ -1358,13 +1357,7 @@ static void gxmContextStateRestore(renderer::State &state, SceGxmContext *contex
             context->state.region_clip_min.x, context->state.region_clip_max.x, context->state.region_clip_min.y,
             context->state.region_clip_max.y);
 
-        if (context->state.viewport.enable == SCE_GXM_VIEWPORT_ENABLED) {
-            renderer::set_viewport_real(state, context->renderer.get(), context->state.viewport.offset.x,
-                context->state.viewport.offset.y, context->state.viewport.offset.z, context->state.viewport.scale.x,
-                context->state.viewport.scale.y, context->state.viewport.scale.z);
-        } else {
-            renderer::set_viewport_flat(state, context->renderer.get());
-        }
+        update_viewport(state, context);
     }
 
     renderer::set_cull_mode(state, context->renderer.get(), context->state.cull_mode);
@@ -2052,7 +2045,7 @@ EXPORT(int, sceGxmDisplayQueueAddEntry, Ptr<SceGxmSyncObject> oldBuffer, Ptr<Sce
 
     DisplayFrameInfo *frame = predict_next_image(emuenv, newBuffer.address());
 
-    // Block future rendering by setting value2 of sync object
+    // Block future rendering by setting values of sync object
     SceGxmSyncObject *oldBufferSync = oldBuffer.get(emuenv.mem);
     SceGxmSyncObject *newBufferSync = newBuffer.get(emuenv.mem);
 
@@ -2060,36 +2053,15 @@ EXPORT(int, sceGxmDisplayQueueAddEntry, Ptr<SceGxmSyncObject> oldBuffer, Ptr<Sce
         .data = address,
         .old_sync = oldBuffer,
         .new_sync = newBuffer,
-        .new_sync_timestamp = newBufferSync->timestamp_ahead++,
+        .old_sync_timestamp = oldBufferSync->timestamp_ahead,
+        .new_sync_timestamp = newBufferSync->timestamp_ahead,
         .frame_predicted = frame != nullptr
     };
 
-    if (newBuffer == emuenv.gxm.last_fbo_sync_object) {
-        // don't know why, some games like NFS send twice in a row the same buffer to the front...
-        // act like it is not displaying anymore
-        renderer::subject_done(newBufferSync, newBufferSync->last_display);
-    }
-
-    if (oldBufferSync->last_operation_global > emuenv.gxm.last_display_global
-        && oldBufferSync->last_operation_global < newBufferSync->last_operation_global) {
-        // if we do nothing we will softlock
-        // so just act as if the old buffer is already done being displayed
-        renderer::subject_done(oldBufferSync, oldBufferSync->last_display);
-    }
-
-    newBufferSync->last_display = newBufferSync->timestamp_ahead.load();
-    emuenv.gxm.last_fbo_sync_object = newBuffer;
+    oldBufferSync->last_display = ++oldBufferSync->timestamp_ahead;
+    if (oldBufferSync != newBufferSync)
+        newBufferSync->last_display = ++newBufferSync->timestamp_ahead;
     emuenv.gxm.last_display_global = emuenv.gxm.global_timestamp.fetch_add(1, std::memory_order_relaxed);
-
-    // needed the first time the sync object is used as the old front buffer
-    if (oldBufferSync->last_display == 0) {
-        // resogun draws to the front buffer using the fact that the sync object prevents
-        // it from doing so until it is swapped, the first time it happens must be handled
-        // as a special case
-        renderer::wishlist(oldBufferSync, oldBufferSync->timestamp_ahead);
-
-        oldBufferSync->last_display = ++oldBufferSync->timestamp_ahead;
-    }
 
     // function may be blocking here (expected behavior)
     emuenv.gxm.display_queue.push(display_callback);
@@ -3634,7 +3606,7 @@ EXPORT(void, sceGxmSetCullMode, SceGxmContext *context, SceGxmCullMode mode) {
     }
 }
 
-static constexpr const std::uint32_t SCE_GXM_DEFERRED_CONTEXT_MINIMUM_BUFFER_SIZE = 1024;
+static constexpr std::uint32_t SCE_GXM_DEFERRED_CONTEXT_MINIMUM_BUFFER_SIZE = 1024;
 
 EXPORT(int, sceGxmSetDeferredContextFragmentBuffer, SceGxmContext *deferredContext, Ptr<void> mem, uint32_t size) {
     TRACY_FUNC(sceGxmSetDeferredContextFragmentBuffer, deferredContext, mem, size);
@@ -4177,14 +4149,13 @@ EXPORT(void, sceGxmSetViewport, SceGxmContext *context, float xOffset, float xSc
         context->state.viewport.scale.y = yScale;
         context->state.viewport.scale.z = zScale;
 
+        if (!context->state.active) {
+            LOG_WARN_ONCE("The call was made outside of the Scene. It will be ignored.");
+            return;
+        }
+
         if (context->alloc_space) {
-            if (context->state.viewport.enable == SCE_GXM_VIEWPORT_ENABLED) {
-                renderer::set_viewport_real(*emuenv.renderer, context->renderer.get(), context->state.viewport.offset.x,
-                    context->state.viewport.offset.y, context->state.viewport.offset.z, context->state.viewport.scale.x, context->state.viewport.scale.y,
-                    context->state.viewport.scale.z);
-            } else {
-                renderer::set_viewport_flat(*emuenv.renderer, context->renderer.get());
-            }
+            update_viewport(*emuenv.renderer, context);
         }
     }
 }
@@ -4195,14 +4166,13 @@ EXPORT(void, sceGxmSetViewportEnable, SceGxmContext *context, SceGxmViewportMode
     if (context->state.viewport.enable != enable) {
         context->state.viewport.enable = enable;
 
+        if (!context->state.active) {
+            LOG_WARN_ONCE("The call was made outside of the Scene. It will be applied when the next Scene is called.");
+            return;
+        }
+
         if (context->alloc_space) {
-            if (context->state.viewport.enable == SCE_GXM_VIEWPORT_DISABLED) {
-                renderer::set_viewport_flat(*emuenv.renderer, context->renderer.get());
-            } else {
-                renderer::set_viewport_real(*emuenv.renderer, context->renderer.get(), context->state.viewport.offset.x,
-                    context->state.viewport.offset.y, context->state.viewport.offset.z, context->state.viewport.scale.x, context->state.viewport.scale.y,
-                    context->state.viewport.scale.z);
-            }
+            update_viewport(*emuenv.renderer, context);
         }
     }
 }

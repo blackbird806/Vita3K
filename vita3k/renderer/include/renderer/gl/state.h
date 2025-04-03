@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -23,12 +23,10 @@
 #include <renderer/types.h>
 
 #include "types.h"
-#include <features/state.h>
 
 #include <SDL.h>
 
-#include <map>
-#include <string>
+#include <string_view>
 #include <vector>
 
 namespace renderer::gl {
@@ -60,6 +58,7 @@ struct GLState : public renderer::State {
     void set_screen_filter(const std::string_view &filter) override;
     int get_max_anisotropic_filtering() override;
     void set_anisotropic_filtering(int anisotropic_filtering) override;
+    int get_max_2d_texture_width() override;
 
     std::string_view get_gpu_name() override;
 

@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -46,6 +46,7 @@ struct DialogLangState {
         { "submit", "Submit" },
         { "yes", "Yes" }
     };
+    std::map<std::string, std::string> message = { { "load_app_failed", "Failed to load {}.\nCheck vita3k.log to see console output for details.\n1. Do you have installed firmware?\n2. Dump your own app(s)/game(s) and install it on Vita3K.\n3. If you want to install or boot Vitamin, it is not supported." } };
     std::map<std::string, std::string> trophy = { { "preparing_start_app", "Preparing to start the application..." } };
     struct SaveData {
         std::map<std::string, std::string> deleting = {
@@ -111,6 +112,7 @@ struct LangState {
             { "last_apps_used", "Last Apps used" }
         };
         std::map<std::string, std::string> debug = {
+            { "title", "Debug" },
             { "threads", "Threads" },
             { "semaphores", "Semaphores" },
             { "mutexes", "Mutexes" },
@@ -257,7 +259,7 @@ struct LangState {
         { "connected", "{} controllers connected" },
         { "name", "Name" },
         { "num", "Num" },
-        { "not_connected", "No compatible controllers connected.\nPlease connect a controller that is compatible with SDL2." },
+        { "not_connected", "No compatible controllers connected.\nConnect a controller that is compatible with SDL2." },
         { "motion_support", "Gamepad has motion support" },
         { "rebind_controls", "Rebind Controls" },
         { "led_color", "LED Color" },
@@ -389,7 +391,7 @@ struct LangState {
             { "copy_paste_zrif", "Ctrl (Cmd) + C to copy, Ctrl (Cmd) + V to paste." },
             { "delete_pkg", "Delete the pkg file?" },
             { "delete_bin_rif", "Delete the work.bin/rif file?" },
-            { "failed_install_package", "Failed to install package.\nPlease check pkg and work.bin/rif file or zRIF key." }
+            { "failed_install_package", "Failed to install package.\nCheck pkg and work.bin/rif file or zRIF key." }
         };
         std::map<std::string, std::string> archive_install = {
             { "select_install_type", "Select install type" },
@@ -404,7 +406,7 @@ struct LangState {
         };
         std::map<std::string, std::string> license_install = {
             { "successed_install_license", "Successfully installed license." },
-            { "failed_install_license", "Failed to install license.\nPlease check work.bin/rif file or zRIF key." }
+            { "failed_install_license", "Failed to install license.\nCheck work.bin/rif file or zRIF key." }
         };
         std::map<std::string, std::string> reinstall = {
             { "reinstall_content", "Reinstall this content?" },
@@ -524,7 +526,13 @@ struct LangState {
             { "search_modules", "Search Modules" },
             { "clear_list", "Clear List" },
             { "no_modules", "No modules present.\nPlease download and install the last PS Vita firmware." },
-            { "refresh_list", "Refresh List" }
+            { "refresh_list", "Refresh List" },
+            { "automatic", "Automatic" },
+            { "automatic_description", "Select Automatic mode to use a preset list of modules." },
+            { "auto_manual", "Auto & Manual" },
+            { "auto_manual_description", "Select this mode to load Automatic module and selected modules from the list below." },
+            { "manual", "Manual" },
+            { "manual_description", "Select Manual mode to load selected modules from the list below." }
         };
         std::map<std::string, std::string> cpu = {
             { "unicorn", "Unicorn (deprecated)" },
@@ -624,7 +632,7 @@ struct LangState {
             { "medium", "Medium" },
             { "maximum", "Maximum" },
             { "detail", "Detail" },
-            { "select_detail", "Select your preferred perfomance overlay detail." },
+            { "select_detail", "Select your preferred performance overlay detail." },
             { "top_left", "Top Left" },
             { "top_center", "Top Center" },
             { "top_right", "Top Right" },
@@ -632,7 +640,7 @@ struct LangState {
             { "bottom_center", "Bottom Center" },
             { "bottom_right", "Bottom Right" },
             { "position", "Position" },
-            { "select_position", "Select your preferred perfomance overlay position." },
+            { "select_position", "Select your preferred performance overlay position." },
             { "case_insensitive", "Check to enable case-insensitive path finding on case sensitive filesystems.\nRESETS ON RESTART" },
             { "case_insensitive_description", "Allows emulator to attempt to search for files regardless of case\non non-Windows platforms." },
             { "emu_storage_folder", "Emulated System Storage Folder" },
@@ -642,7 +650,9 @@ struct LangState {
             { "reset_emu_path", "Reset Emulator Path" },
             { "reset_emu_path_description", "Reset Vita3K emulator path to the default.\nYou will need to move your old folder to the new location manually." },
             { "custom_config_settings", "Custom Config Settings" },
-            { "clear_custom_config", "Clear Custom Config" }
+            { "clear_custom_config", "Clear Custom Config" },
+            { "screenshot_image_type", "screenshot image type" },
+            { "screenshot_format", "Screenshot format" }
         };
         std::map<std::string, std::string> gui = {
             { "title", "GUI" },
@@ -743,7 +753,9 @@ struct LangState {
         { "trophies", "Trophies" },
         { "grade", "Grade" },
         { "progress", "Progress" },
-        { "updated", "Updated" }
+        { "updated", "Updated" },
+        { "advance", "Advance" },
+        { "show_hidden", "Show Hidden Trophies" }
     };
     std::map<std::string, std::string> user_management = {
         { "select_user", "Select User" },
@@ -769,7 +781,7 @@ struct LangState {
         { "title", "Vita3K Update" },
         { "new_version_available", "A new version of Vita3K is available." },
         { "back", "Back" },
-        { "cancel_update", "Do you want to cancel the update?" },
+        { "cancel_update_resume", "Do you want to cancel the update?\nIf you cancel, the next time you update, Vita3K will start downloading from this point." },
         { "downloading", "Downloading...\nAfter the download is complete, Vita3K will restart automatically and then install the new update." },
         { "not_complete_update", "Could not complete the update." },
         { "minutes_left", "{} Minutes Left" },

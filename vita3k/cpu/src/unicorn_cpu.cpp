@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -17,7 +17,9 @@
 
 #include <cpu/functions.h>
 #include <cpu/impl/unicorn_cpu.h>
+#include <mem/functions.h>
 #include <mem/ptr.h>
+#include <mem/util.h>
 #include <util/log.h>
 
 #include <cassert>

@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "io/functions.h"
 #include "io/io.h"
 
+#include <boost/filesystem/operations.hpp>
 #include <modules/module_parent.h>
 
 #include <cpu/functions.h>
@@ -29,6 +30,9 @@
 #include <kernel/state.h>
 #include <module/load_module.h>
 #include <nids/functions.h>
+#include <packages/license.h>
+#include <packages/sce_types.h>
+#include <patch/patch.h>
 #include <util/arm.h>
 #include <util/find.h>
 #include <util/lock_and_find.h>
@@ -95,6 +99,27 @@ Address resolve_export(KernelState &kernel, uint32_t nid) {
     }
 
     return export_address->second;
+}
+
+Ptr<void> create_vtable(const std::vector<uint32_t> &nids, MemState &mem) {
+    // we need 4 bytes for the function pointer and 12 bytes for the syscall
+    const uint32_t vtable_size = nids.size() * 4 * sizeof(uint32_t);
+    Ptr<void> vtable = Ptr<void>(alloc(mem, vtable_size, "vtable"));
+    uint32_t *function_pointer = vtable.cast<uint32_t>().get(mem);
+    uint32_t *function_svc = function_pointer + nids.size();
+    uint32_t function_location = vtable.address() + nids.size() * sizeof(uint32_t);
+    for (uint32_t nid : nids) {
+        *function_pointer = function_location;
+        // encode svc call
+        function_svc[0] = 0xef000000; // svc #0 - Call our interrupt hook.
+        function_svc[1] = 0xe1a0f00e; // mov pc, lr - Return to the caller.
+        function_svc[2] = nid; // Our interrupt hook will read this.
+
+        function_pointer++;
+        function_svc += 3;
+        function_location += 3 * sizeof(uint32_t);
+    }
+    return vtable;
 }
 
 static void log_import_call(char emulation_level, uint32_t nid, SceUID thread_id, const std::unordered_set<uint32_t> &nid_blacklist, Address lr) {
@@ -186,7 +211,31 @@ SceUID load_module(EmuEnvState &emuenv, const std::string &module_path) {
     vfs::FileBuffer module_buffer;
     bool res;
     VitaIoDevice device = device::get_device(module_path);
-    auto translated_module_path = translate_path(module_path.c_str(), device, emuenv.io.device_paths);
+    auto device_for_icase = device;
+    fs::path translated_module_path = translate_path(module_path.c_str(), device, emuenv.io.device_paths);
+    auto system_path = device::construct_emulated_path(device, translated_module_path, emuenv.pref_path, emuenv.io.redirect_stdio);
+
+    if (emuenv.io.case_isens_find_enabled && !fs::exists(system_path)) {
+        // Attempt a case-insensitive file search.
+        const auto original_translated_module_path = translated_module_path;
+        const auto cached_path = find_in_cache(emuenv.io, string_utils::tolower(translated_module_path.string()));
+        if (!cached_path.empty()) {
+            translated_module_path = cached_path;
+            LOG_TRACE("Found cached filepath at {}", translated_module_path);
+        } else {
+            const bool path_found = find_case_isens_path(emuenv.io, device_for_icase, translated_module_path, system_path);
+            translated_module_path = find_in_cache(emuenv.io, string_utils::tolower(system_path.string()));
+            if (!translated_module_path.empty() && path_found) {
+                LOG_TRACE("Found file on case-sensitive filesystem at {}", translated_module_path);
+                translated_module_path = translated_module_path.string().substr(emuenv.pref_path.string().length());
+                translated_module_path = translated_module_path.string().substr(translated_module_path.string().find('/') + 1);
+            } else {
+                LOG_ERROR("Missing file at {} (target path: {})", original_translated_module_path.string(), module_path);
+                return SCE_ERROR_ERRNO_ENOENT;
+            }
+        }
+    }
+
     if (device == VitaIoDevice::app0)
         res = vfs::read_app_file(module_buffer, emuenv.pref_path, emuenv.io.app_path, translated_module_path);
     else
@@ -195,7 +244,19 @@ SceUID load_module(EmuEnvState &emuenv, const std::string &module_path) {
         LOG_ERROR("Failed to read module file {}", module_path);
         return SCE_ERROR_ERRNO_ENOENT;
     }
-    SceUID module_id = load_self(emuenv.kernel, emuenv.mem, module_buffer.data(), module_path, emuenv.log_path);
+
+    // Decrypt module file if necessary
+    module_buffer = decrypt_fself(std::move(module_buffer), emuenv.license.rif[emuenv.io.title_id].key);
+    if (module_buffer.empty()) {
+        LOG_ERROR("Failed to decrypt module file {}", module_path);
+        return SCE_ERROR_ERRNO_ENOENT;
+    }
+
+    // Only load patches for eboot.bin modules
+    const std::vector<Patch> patches = module_path.find("eboot.bin") != std::string::npos ? get_patches(emuenv.patch_path, emuenv.io.title_id) : std::vector<Patch>();
+
+    SceUID module_id = load_self(emuenv.kernel, emuenv.mem, module_buffer.data(), module_path, emuenv.log_path, patches);
+
     if (module_id >= 0) {
         const auto module = lock_and_find(module_id, emuenv.kernel.loaded_modules, emuenv.kernel.mutex);
         LOG_INFO("Module {} (at \"{}\") loaded", module->info.module_name, module_path);

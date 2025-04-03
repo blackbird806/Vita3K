@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -26,14 +26,14 @@ enum ModulesMode {
     MANUAL
 };
 
-enum PerfomanceOverleyDetail {
+enum PerformanceOverlayDetail {
     MINIMUM,
     LOW,
     MEDIUM,
     MAXIMUM,
 };
 
-enum PerfomanceOverleyPosition {
+enum PerformanceOverlayPosition {
     TOP_LEFT,
     TOP_CENTER,
     TOP_RIGHT,
@@ -42,10 +42,17 @@ enum PerfomanceOverleyPosition {
     BOTTOM_RIGHT,
 };
 
+enum ScreenshotFormat {
+    None,
+    JPEG,
+    PNG,
+};
+
 // clang-format off
 // Singular options produced in config file
 // Order is code(option_type, option_name, option_default, member_name)
 // When adding in a new macro for generation, ALL options must be stated.
+// All member names starting with "keyboard_" will be considered as key input (See controls_dialog.cpp)
 #define CONFIG_INDIVIDUAL(code)                                                                         \
     code(bool, "initial-setup", false, initial_setup)                                                   \
     code(bool, "gdbstub", false, gdbstub)                                                               \
@@ -101,8 +108,10 @@ enum PerfomanceOverleyPosition {
     code(bool, "color-surface-debug", false, color_surface_debug)                                       \
     code(bool, "show-touchpad-cursor", true, show_touchpad_cursor)                                      \
     code(bool, "performance-overlay", false, performance_overlay)                                       \
-    code(int, "perfomance-overlay-detail", static_cast<int>(MINIMUM), performance_overlay_detail)       \
-    code(int, "perfomance-overlay-position", static_cast<int>(TOP_LEFT), performance_overlay_position)  \
+    code(int, "performance-overlay-detail", static_cast<int>(MINIMUM), performance_overlay_detail)       \
+    code(int, "performance-overlay-position", static_cast<int>(TOP_LEFT), performance_overlay_position)  \
+    code(int, "screenshot-format", static_cast<int>(JPEG), screenshot_format)                           \
+    code(bool, "disable-motion", false, disable_motion)                                                 \
     code(int, "keyboard-button-select", 229, keyboard_button_select)                                    \
     code(int, "keyboard-button-start", 40, keyboard_button_start)                                       \
     code(int, "keyboard-button-up", 82, keyboard_button_up)                                             \
@@ -136,7 +145,7 @@ enum PerfomanceOverleyPosition {
     code(std::string, "user-id", std::string{}, user_id)                                                \
     code(bool, "user-auto-connect", false, auto_user_login)                                             \
     code(std::string, "user-lang", std::string{}, user_lang)                                            \
-    code(bool, "display-info-message", true, display_info_message)                                      \
+    code(bool, "display-info-message", false, display_info_message)                                     \
     code(bool, "show-welcome", true, show_welcome)                                                      \
     code(bool, "check-for-updates", true, check_for_updates)                                            \
     code(bool, "asia-font-support", false, asia_font_support)                                           \

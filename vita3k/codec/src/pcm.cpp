@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -261,7 +261,7 @@ bool PCMDecoderState::send(const uint8_t *data, uint32_t size) {
         produced_samples = size / sizeof(std::int16_t) / source_channels;
     }
 
-    // Try to resample if neccessary
+    // Try to resample if necessary
     SwrContext *swr = (source_channels == 2) ? swr_stereo : swr_mono_to_stereo;
 
     const int dest_count = swr_get_out_samples(swr, produced_samples);

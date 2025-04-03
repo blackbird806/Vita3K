@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -29,13 +29,13 @@
 #include <algorithm>
 #include <cstring>
 #include <numeric>
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(__APPLE__)
 #include <xxh_x86dispatch.h>
 #else
 #define XXH_INLINE_ALL
 #include <xxhash.h>
 #endif
-#ifdef WIN32
+#ifdef _WIN32
 #include <execution>
 #endif
 

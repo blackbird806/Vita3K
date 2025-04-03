@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -25,13 +25,10 @@
 
 #include <cpu/functions.h>
 #include <mem/ptr.h>
-#include <util/align.h>
-#include <util/find.h>
+#include <util/lock_and_find.h>
 #include <util/log.h>
 
 #include <SDL_thread.h>
-#include <spdlog/fmt/fmt.h>
-#include <util/lock_and_find.h>
 
 int CorenumAllocator::new_corenum() {
     const std::lock_guard<std::mutex> guard(lock);

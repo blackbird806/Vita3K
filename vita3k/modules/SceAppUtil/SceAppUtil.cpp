@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -22,10 +22,11 @@
 #include <io/functions.h>
 #include <io/io.h>
 #include <io/vfs.h>
+#include <packages/license.h>
 #include <util/safe_time.h>
 #include <util/tracy.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <winsock.h>
 #else
 #include <unistd.h>
@@ -146,7 +147,7 @@ EXPORT(SceInt32, sceAppUtilAppParamGetInt, SceAppUtilAppParamId paramId, SceInt3
     if (!value)
         return RET_ERROR(SCE_APPUTIL_ERROR_NOT_INITIALIZED);
 
-    *value = emuenv.app_sku_flag;
+    *value = emuenv.license.rif[emuenv.io.title_id].sku_flag;
 
     return 0;
 }

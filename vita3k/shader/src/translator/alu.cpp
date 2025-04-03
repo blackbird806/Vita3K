@@ -1,5 +1,5 @@
 // Vita3K emulator project
-// Copyright (C) 2024 Vita3K team
+// Copyright (C) 2025 Vita3K team
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -131,7 +131,7 @@ bool USSETranslatorVisitor::vmad(
 
     set_repeat_multiplier(2, 2, 2, 4);
 
-    // Write mask is a 4-bit immidiate
+    // Write mask is a 4-bit immediate
     // If a bit is one, a swizzle is active
     BEGIN_REPEAT(repeat_count)
     GET_REPEAT(inst, repeat_mode);
@@ -195,7 +195,7 @@ bool USSETranslatorVisitor::vmad2(
 
     const DataType inst_dt = (dat_fmt) ? DataType::F16 : DataType::F32;
 
-    // Decode mandantory info first
+    // Decode mandatory info first
     inst.opr.dest = decode_dest(inst.opr.dest, dest_n, dest_bank, false, true, 7, m_second_program);
     inst.opr.src0 = decode_src0(inst.opr.src0, src0_n, src0_bank, false, true, 7, m_second_program);
     inst.opr.src1 = decode_src12(inst.opr.src1, src1_n, src1_bank, src1_bank_ext, true, 7, m_second_program);
@@ -1675,7 +1675,7 @@ bool USSETranslatorVisitor::vdual(
     };
 
     // Each instruction might have a different source layout or write mask depending on how the instruction works.
-    // Let's store insturction information in a map so it's easy for each instruction to be loaded.
+    // Let's store instruction information in a map so it's easy for each instruction to be loaded.
     struct DualOpInfo {
         uint8_t src_count;
         bool vector_load;
@@ -1768,8 +1768,7 @@ bool USSETranslatorVisitor::vdual(
                 op = decode_src12(op, unified_store_slot_num, unified_store_slot_bank, false,
                     code_info.vector_load, code_info.vector_load ? 8 : 7, m_second_program);
                 // gpi2_slot_num_bit_1 is also unified source ext
-                op.swizzle = decode_dual_swizzle(unified_store_swizz,
-                    op1_src_count >= 2 ? false : gpi2_slot_num_bit_1, comp_count_type);
+                op.swizzle = decode_dual_swizzle(unified_store_swizz, op1_src_count < 2 && gpi2_slot_num_bit_1, comp_count_type);
                 if (op1_src_count < 2 && gpi2_slot_num_bit_0_or_unified_store_abs)
                     op.flags |= RegisterFlags::Absolute;
                 if (unified_store_neg)
