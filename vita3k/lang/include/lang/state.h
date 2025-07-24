@@ -308,6 +308,7 @@ struct LangState {
         { "miscellaneous", "Miscellaneous" },
         { "toggle_texture_replacement", "Toggle Texture Replacement" },
         { "take_screenshot", "Take A Screenshot" },
+        { "pinch_modifier", "Pinch modifier" },
         { "error_duplicate_key", "The key is used for other bindings or it is reserved." }
     };
     std::map<std::string, std::string> game_data = {

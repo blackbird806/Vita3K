@@ -41,6 +41,7 @@ static int curr_touch_id[2] = { 0, 0 };
 static int next_touch_id = 1;
 static uint64_t last_vcount[2] = { 0, 0 };
 static bool forceTouchEnabled[2] = { false, false };
+static bool pinchModifierEnabled = false;
 
 static SceTouchData recover_touch_events(const EmuEnvState &emuenv) {
     SceTouchData touch_data;
@@ -151,6 +152,13 @@ void touch_vsync_update(const EmuEnvState &emuenv) {
                     }
                     data->report[data->reportNum].id = curr_touch_id[port];
                     ++data->reportNum;
+
+                    if (pinchModifierEnabled) {
+                        data->report[data->reportNum].x = 0;
+                        data->report[data->reportNum].y = 0;
+                        data->report[data->reportNum].id = 1;
+                        ++data->reportNum;
+                    }
                 }
 
                 if (!emuenv.touch.touch_mode[port]) {
@@ -164,6 +172,10 @@ void touch_vsync_update(const EmuEnvState &emuenv) {
 
     touch_buffer_idx++;
     touch_buffer_idx %= MAX_TOUCH_BUFFER_SAVED;
+}
+
+void pinch_modifier(bool isHold) {
+    pinchModifierEnabled = isHold;
 }
 
 int handle_touch_event(SDL_TouchFingerEvent &finger) {
