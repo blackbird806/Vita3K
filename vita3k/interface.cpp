@@ -738,9 +738,10 @@ bool handle_events(EmuEnvState &emuenv, GuiState &gui) {
                 pinch_modifier(false);
             break;
 
+        case SDL_MOUSEWHEEL:
+            pinch_move(event.wheel.y);
         case SDL_MOUSEMOTION:
         case SDL_MOUSEBUTTONDOWN:
-        case SDL_MOUSEWHEEL:
             gui.is_nav_button = false;
             break;
 
