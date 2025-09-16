@@ -711,6 +711,8 @@ bool handle_events(EmuEnvState &emuenv, GuiState &gui) {
                 toggle_texture_replacement(emuenv);
             if (event.key.scancode == emuenv.cfg.keyboard_take_screenshot && !gui.is_key_capture_dropped)
                 take_screenshot(emuenv);
+            if (event.key.scancode == emuenv.cfg.pinch_modifier && !gui.is_key_capture_dropped)
+                pinch_modifier(true);
 
             if (sce_ctrl_btn != 0) {
                 if (last_buttons.contains(sce_ctrl_btn)) {
@@ -724,8 +726,13 @@ bool handle_events(EmuEnvState &emuenv, GuiState &gui) {
         }
         case SDL_EVENT_KEY_UP:
             gui.is_key_locked = false;
+            if (event.key.scancode == emuenv.cfg.pinch_modifier)
+                pinch_modifier(false);
             break;
 
+
+        case SDL_EVENT_MOUSE_WHEEL:
+            pinch_move(event.wheel.y);
         case SDL_EVENT_MOUSE_MOTION:
         case SDL_EVENT_MOUSE_BUTTON_DOWN:
         case SDL_EVENT_MOUSE_WHEEL:

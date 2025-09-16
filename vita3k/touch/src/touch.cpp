@@ -105,7 +105,7 @@ void touch_vsync_update(const EmuEnvState &emuenv) {
 
     } else {
         SceFVector2 touch_pos_window = { 0, 0 };
-        const uint32_t buttons = SDL_GetMouseState(&touch_pos_window.x, &touch_pos_window.y);
+        uint32_t buttons = SDL_GetMouseState(&touch_pos_window.x, &touch_pos_window.y);
 
         for (int port = 0; port < 2; port++) {
             // do it for both the front and the back touchscreen
