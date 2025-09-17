@@ -711,8 +711,15 @@ bool handle_events(EmuEnvState &emuenv, GuiState &gui) {
                 toggle_texture_replacement(emuenv);
             if (event.key.scancode == emuenv.cfg.keyboard_take_screenshot && !gui.is_key_capture_dropped)
                 take_screenshot(emuenv);
-            if (event.key.scancode == emuenv.cfg.pinch_modifier && !gui.is_key_capture_dropped)
+            if ((event.key.scancode == emuenv.cfg.pinch_modifier || event.key.scancode == emuenv.cfg.alternate_pinch_in || event.key.scancode == emuenv.cfg.alternate_pinch_out) && !gui.is_key_capture_dropped)
                 pinch_modifier(true);
+           
+            const float pinch_amount = 0.5;
+            if (event.key.scancode == emuenv.cfg.alternate_pinch_in && !gui.is_key_capture_dropped)
+                pinch_automove(pinch_amount * -1);
+            if (event.key.scancode == emuenv.cfg.alternate_pinch_out && !gui.is_key_capture_dropped)
+                pinch_automove(pinch_amount);
+
 
             if (sce_ctrl_btn != 0) {
                 if (last_buttons.contains(sce_ctrl_btn)) {
@@ -726,8 +733,11 @@ bool handle_events(EmuEnvState &emuenv, GuiState &gui) {
         }
         case SDL_EVENT_KEY_UP:
             gui.is_key_locked = false;
-            if (event.key.scancode == emuenv.cfg.pinch_modifier)
+            if (event.key.scancode == emuenv.cfg.pinch_modifier || event.key.scancode == emuenv.cfg.alternate_pinch_in || event.key.scancode == emuenv.cfg.alternate_pinch_out) {
                 pinch_modifier(false);
+                pinch_automove(0);
+            }
+
             break;
 
 

@@ -42,10 +42,12 @@ static int next_touch_id = 1;
 static uint64_t last_vcount[2] = { 0, 0 };
 static bool forceTouchEnabled[2] = { false, false };
 static bool pinchModifierEnabled = false;
+static float pinch_velocity = 0;
 static bool oldPinchBehavior = false;
 constexpr SceInt16 initial_pinch_dist = 300;
 static SceInt16 pinch_dist = initial_pinch_dist;
 static SceInt16 pinch_speed = 40;
+
 
 static void reset_pinch() {
     pinch_dist = initial_pinch_dist;
@@ -165,6 +167,10 @@ void touch_vsync_update(const EmuEnvState &emuenv) {
                     ++data->reportNum;
 
                     if (pinchModifierEnabled) {
+                        if (pinch_velocity != 0) {
+                            pinch_move(pinch_velocity);
+                        }
+
                         const SceInt16 baseTouchposX = data->report[data->reportNum - 1].x;
 
                         data->report[data->reportNum - 1].x = baseTouchposX - pinch_dist;
@@ -202,8 +208,12 @@ void pinch_modifier(bool isHold) {
     }
 }
 
-void pinch_move(int velocity) {
+void pinch_move(float velocity) {
     pinch_dist += velocity * pinch_speed;
+}
+
+void pinch_automove(float velocity) {
+    pinch_velocity = velocity;
 }
 
 int handle_touch_event(SDL_TouchFingerEvent &finger) {
